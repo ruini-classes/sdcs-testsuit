@@ -2,7 +2,7 @@
 Simple test for SDCS
 
 ```sh
-./test.sh {cache_server_number}
+./sdcd-test.sh {cache_server_number}
 ```
 
 ## Todo
