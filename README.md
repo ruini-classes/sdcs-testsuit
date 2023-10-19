@@ -11,4 +11,5 @@ Simple test for SDCS
 - [ ] Real performance test (by jmeter?)
 - [ ] Better command line argument processing and help.
 
-Mac用户运行脚本时若提示`shuf: command not found`，可以通过`brew install coreutils`安装相应的工具解决。
+## Q&A
+- Mac用户运行脚本时若提示`shuf: command not found`，可以通过`brew install coreutils`安装相应的工具解决。
