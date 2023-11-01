@@ -2,7 +2,7 @@
 Simple test for SDCS
 
 ```sh
-./sdcd-test.sh {cache_server_number}
+./sdcs-test.sh {cache_server_number}
 ```
 
 ## Todo
@@ -10,3 +10,6 @@ Simple test for SDCS
 - [ ] Evaluate return value.
 - [ ] Real performance test (by jmeter?)
 - [ ] Better command line argument processing and help.
+
+## Q&A
+- Mac用户运行脚本时若提示`shuf: command not found`，可以通过`brew install coreutils`安装相应的工具解决。
