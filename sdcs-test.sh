@@ -30,6 +30,9 @@ PORT_BASE=9526
 HOST_BASE=127.0.0.1
 MAX_ITER=500
 
+PASS_PROMPT="\e[1;32mPASS\e[0m"
+FAIL_PROMPT="\e[1;31mFAIL\e[0m"
+
 function get_cs() {
 	port=$(($PORT_BASE + $(shuf -i 1-$cs_num -n 1)))
 	echo http://$HOST_BASE:$port
@@ -141,12 +144,11 @@ function run_test() {
 	local test_function=$1
 	local test_name=$2
 
-	echo "🛈 Starting $test_name test..."
 	if $test_function; then
-		echo "✅ $test_name test passed."
+		echo -e "$test_name ...... ${PASS_PROMPT}"
 		return 0
 	else
-		echo "❌ $test_name test failed."
+		echo -e "$test_name ...... ${FAIL_PROMPT}"
 		return 1
 	fi
 }
@@ -158,27 +160,28 @@ declare -a test_order=(
 	"test_delete"
 )
 
-declare -A tests=(
-	["test_set"]="set"
-	["test_get"]="get"
-	["test_set again"]="set again"
-	["test_delete"]="delete"
+declare -A test_func=(
+	["test_set"]="test_set"
+	["test_get"]="test_get"
+	["test_set again"]="test_set"
+	["test_delete"]="test_delete"
 )
 
-declare -A test_results
 pass_count=0
+fail_count=0
 
-for test in "${test_order[@]}"; do
-	if run_test "$test" "${tests[$test]}"; then
+# NOTE: macos date does not support `date +%s%N`.
+TIMEFORMAT="======================================
+Run ${#test_order[@]} tests in %R seconds."
+
+time {
+for testname in "${test_order[@]}"; do
+	if run_test "${test_func[$testname]}" "$testname"; then
 		((pass_count++))
-		test_results["$test"]="passed"
 	else
-		test_results["$test"]="failed"
+		((fail_count++))
 	fi
 done
+}
 
-echo "$pass_count tests passed in total."
-
-for test in "${!test_results[@]}"; do
-	echo "$test: ${test_results[$test]}"
-done
+echo -e "\e[1;32m$pass_count\e[0m passed, \e[1;31m$fail_count\e[0m failed."
