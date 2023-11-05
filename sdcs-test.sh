@@ -14,16 +14,17 @@ cs_num=$1
 	exit 2
 }
 
-# for macos, the default head/tail break.
-if [[ $OSTYPE == 'darwin'* ]]; then
-	if `which ghead > /dev/null 2>&1` ; then
-		alias head=ghead
-		alias tail=gtail
-	else
-		echo "please run 'brew install coreutils'."
-		exit 1
-	fi
-fi
+## for macos, the default head/tail break. With GNU head/tail, it is
+## easy to capture multilines, for example, `head -n -1` for a big body.
+#if [[ $OSTYPE == 'darwin'* ]]; then
+#	if `which ghead > /dev/null 2>&1` ; then
+#		alias head=ghead
+#		alias tail=gtail
+#	else
+#		echo "please run 'brew install coreutils'."
+#		exit 1
+#	fi
+#fi
 
 PORT_BASE=9526
 HOST_BASE=127.0.0.1
@@ -44,7 +45,7 @@ function query_key() {
 	local expect="{\"$key\":\"value $(echo $key | sed 's/.*-//')\"}"
 	local response
 	response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
-	local result=$(echo "$response" | head -n -1)
+	local result=$(echo "$response" | head -n 1)
 	local status_code=$(echo "$response" | tail -n 1)
 	if [[ $exist == 1 ]]; then
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
@@ -98,7 +99,7 @@ function test_delete() {
 	done
 	for key in "${keys[@]}"; do
 		response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-		result=$(echo "$response" | head -n -1)
+		result=$(echo "$response" | head -n 1)
 		status_code=$(echo "$response" | tail -n 1)
 		# 检查状态码和结果
 		expect=1
@@ -121,7 +122,7 @@ function test_delete() {
 
 		if [[ $exist == 0 ]]; then
 			response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-			result=$(echo "$response" | head -n -1)
+			result=$(echo "$response" | head -n 1)
 			status_code=$(echo "$response" | tail -n 1)
 			expect=0
 			if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
