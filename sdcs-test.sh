@@ -31,8 +31,8 @@ function query_key() {
 	local expect="{\"$key\":\"value $(echo $key | sed 's/.*-//')\"}"
 	local response
 	response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
-	local result=$(echo "$response" | head -n 1)
-	local status_code=$(echo "$response" | tail -n +1)
+	local result=$(echo "$response" | head -n -1)
+	local status_code=$(echo "$response" | tail -n 1)
 	if [[ $exist == 1 ]]; then
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 			echo "Error: Invalid response"
@@ -85,8 +85,8 @@ function test_delete() {
 	done
 	for key in "${keys[@]}"; do
 		response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-		result=$(echo "$response" | head -n 1)
-		status_code=$(echo "$response" | tail -n +1)
+		result=$(echo "$response" | head -n -1)
+		status_code=$(echo "$response" | tail -n 1)
 		# 检查状态码和结果
 		expect=1
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
@@ -108,8 +108,8 @@ function test_delete() {
 
 		if [[ $exist == 0 ]]; then
 			response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-			result=$(echo "$response" | head -n 1)
-			status_code=$(echo "$response" | tail -n +1)
+			result=$(echo "$response" | head -n -1)
+			status_code=$(echo "$response" | tail -n 1)
 			expect=0
 			if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 				echo "Error: Invalid response"
