@@ -127,13 +127,13 @@ function run_test() {
 	local test_function=$1
 	local test_name=$2
 
-	echo "Starting $test_name test..."
-	if ! $test_function; then
-		echo "$test_name test failed."
-		return 1
-	else
-		echo "$test_name test passed."
+	echo "🛈 Starting $test_name test..."
+	if $test_function; then
+		echo "✅ $test_name test passed."
 		return 0
+	else
+		echo "❌ $test_name test failed."
+		return 1
 	fi
 }
 
