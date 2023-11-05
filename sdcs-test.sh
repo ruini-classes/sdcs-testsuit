@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [[ $# -ne 1 ]]; then
 	echo "Usage:"
 	echo "$0 {cache server number}"
@@ -11,6 +13,17 @@ cs_num=$1
 	echo "Error: cache server should be more than 3 ($cs_num provided)"
 	exit 2
 }
+
+# for macos, the default head/tail break.
+if [[ $OSTYPE == 'darwin'* ]]; then
+	if `which ghead > /dev/null 2>&1` ; then
+		alias head=ghead
+		alias tail=gtail
+	else
+		echo "please run 'brew install coreutils'."
+		exit 1
+	fi
+fi
 
 PORT_BASE=9526
 HOST_BASE=127.0.0.1
