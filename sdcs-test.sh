@@ -42,19 +42,31 @@ function get_key() {
 	echo "key-$(shuf -i 1-$MAX_ITER -n 1)"
 }
 
+function gen_data_with_idx() {
+	local idx=$1
+
+	echo "{\"key-$idx\": \"value $idx\"}"
+}
+
+function gen_data_with_key() {
+	local key=$1
+
+	echo "{\"$key\":\"value $(echo $key | sed 's/.*-//')\"}"
+}
+
 function query_key() {
 	local key=$1
 	local exist=$2
-	local expect="{\"$key\":\"value $(echo $key | sed 's/.*-//')\"}"
-	local response
-	response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
+	local response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
 	local result=$(echo "$response" | head -n 1)
 	local status_code=$(echo "$response" | tail -n 1)
+
 	if [[ $exist == 1 ]]; then
+		local expect=$(gen_data_with_key $key)
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
-			echo "Error: Invalid response"
-			echo "\texpect: $status_code $expect"
-			echo "\tgot: $status_code $result"
+			echo -e "Error:\tInvalid response"
+			echo -e "\texpect: 200 $expect"
+			echo -e "\tgot: $status_code $result"
 			return 1
 		fi
 	else
@@ -68,8 +80,9 @@ function query_key() {
 
 function test_set() {
 	local i=1
+
 	while [[ $i -le $MAX_ITER ]]; do
-		status_code=$(curl -s -o /dev/null -w "%{http_code}" -XPOST -H "Content-type: application/json" -d "{\"key-$i\": \"value $i\"}" $(get_cs))
+		status_code=$(curl -s -o /dev/null -w "%{http_code}" -XPOST -H "Content-type: application/json" -d "$(gen_data_with_idx $i)" $(get_cs))
 		if [[ $status_code -ne 200 ]]; then
 			echo "Error: expect status code 200 but got $status_code"
 			return 1
@@ -91,52 +104,54 @@ function test_get() {
 	return 0
 }
 
+
+deleted_keys=
+
 function test_delete() {
 	local count=$((MAX_ITER / 10 * 9))
-	keys=()
+	local keys=()
 	while [[ ${#keys[@]} -lt $count ]]; do
 		key="key-$(shuf -i 1-$MAX_ITER -n 1)"
 		if ! [[ " ${keys[@]} " =~ " ${key} " ]]; then
 			keys+=("$key")
 		fi
 	done
+	deleted_keys=(${keys[@]})
+
 	for key in "${keys[@]}"; do
-		response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-		result=$(echo "$response" | head -n 1)
-		status_code=$(echo "$response" | tail -n 1)
-		# 检查状态码和结果
-		expect=1
+		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
+		local result=$(echo "$response" | head -n 1)
+		local status_code=$(echo "$response" | tail -n 1)
+		local expect=1
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
-			echo "Error: Invalid response"
-			echo "\texpect: $status_code $expect"
-			echo "\tgot: $status_code $result"
+			echo -e "Error:\tInvalid response"
+			echo -e "\texpect: $status_code $expect"
+			echo -e "\tgot: $status_code $result"
 			return 1
 		fi
-		((i++))
 	done
-	local count=$((MAX_ITER / 10))
-	local i=0
-	while ((i < count)); do
-		local key=$(get_key)
-		local exist=1
-		[[ " ${keys[@]} " =~ " ${key} " ]] && exist=0
 
-		! query_key $key $exist && return 1
+}
 
-		if [[ $exist == 0 ]]; then
-			response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-			result=$(echo "$response" | head -n 1)
-			status_code=$(echo "$response" | tail -n 1)
-			expect=0
-			if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
-				echo "Error: Invalid response"
-				echo "\texpect: $status_code $expect"
-				echo "\tgot: $status_code $result"
-				return 1
-			fi
+function test_get_after_delete() {
+	for key in "${deleted_keys[@]}"; do
+		query_key $key 0 || return 1
+	done
+
+	return 0
+}
+
+function test_delete_after_delete() {
+	for key in "${deleted_keys[@]}"; do
+		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
+		local result=$(echo "$response" | head -n 1)
+		local status_code=$(echo "$response" | tail -n 1)
+		if [[ $status_code -ne 200 ]] || [[ "$result" != "0" ]]; then
+			echo -e "Error:\tInvalid response"
+			echo -e "\texpect: 200 0"
+			echo -e "\tgot: $status_code $result"
+			return 1
 		fi
-
-		((i++))
 	done
 }
 
@@ -144,6 +159,7 @@ function run_test() {
 	local test_function=$1
 	local test_name=$2
 
+	echo "starting $test_name..."
 	if $test_function; then
 		echo -e "$test_name ...... ${PASS_PROMPT}"
 		return 0
@@ -158,6 +174,8 @@ declare -a test_order=(
 	"test_get"
 	"test_set again"
 	"test_delete"
+	"test_get_after_delete"
+	"test_delete_after_delete"
 )
 
 declare -A test_func=(
@@ -165,6 +183,8 @@ declare -A test_func=(
 	["test_get"]="test_get"
 	["test_set again"]="test_set"
 	["test_delete"]="test_delete"
+	["test_get_after_delete"]="test_get_after_delete"
+	["test_delete_after_delete"]="test_delete_after_delete"
 )
 
 pass_count=0
