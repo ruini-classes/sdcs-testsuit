@@ -137,8 +137,6 @@ function test_get_after_delete() {
 	for key in "${deleted_keys[@]}"; do
 		query_key $key 0 || return 1
 	done
-
-	return 0
 }
 
 function test_delete_after_delete() {
@@ -159,7 +157,7 @@ function run_test() {
 	local test_function=$1
 	local test_name=$2
 
-	echo "starting $test_name..."
+	# echo "starting $test_name..."
 	if $test_function; then
 		echo -e "$test_name ...... ${PASS_PROMPT}"
 		return 0
@@ -190,7 +188,7 @@ declare -A test_func=(
 pass_count=0
 fail_count=0
 
-# NOTE: macos date does not support `date +%s%N`.
+# NOTE: macos date does not support `date +%s%N`. Let's use the weird $TIMEFORMAT.
 TIMEFORMAT="======================================
 Run ${#test_order[@]} tests in %R seconds."
 
