@@ -36,13 +36,13 @@ function query_key() {
 	if [[ $exist == 1 ]]; then
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 			echo "Error: Invalid response"
-			echo "expect: $expect $status_code"
-			echo "got: $result $status_code"
+			echo "\texpect: $status_code $expect"
+			echo "\tgot: $status_code $result"
 			return 1
 		fi
 	else
 		if [[ $status_code -ne 404 ]]; then
-			echo "Error: Expect 404"
+			echo "Error: expect status code 404 but got $status_code"
 			return 1
 		fi
 	fi
@@ -54,7 +54,7 @@ function test_set() {
 	while [[ $i -le $MAX_ITER ]]; do
 		status_code=$(curl -s -o /dev/null -w "%{http_code}" -XPOST -H "Content-type: application/json" -d "{\"key-$i\": \"value $i\"}" $(get_cs))
 		if [[ $status_code -ne 200 ]]; then
-			echo "Error: Expected status code 200 but got $status_code"
+			echo "Error: expect status code 200 but got $status_code"
 			return 1
 		fi
 		((i++))
@@ -91,8 +91,8 @@ function test_delete() {
 		expect=1
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 			echo "Error: Invalid response"
-			echo "expect: $expect $status_code"
-			echo "got: $result $status_code"
+			echo "\texpect: $status_code $expect"
+			echo "\tgot: $status_code $result"
 			return 1
 		fi
 		((i++))
@@ -113,8 +113,8 @@ function test_delete() {
 			expect=0
 			if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 				echo "Error: Invalid response"
-				echo "expect: $expect $status_code"
-				echo "got: $result $status_code"
+				echo "\texpect: $status_code $expect"
+				echo "\tgot: $status_code $result"
 				return 1
 			fi
 		fi
