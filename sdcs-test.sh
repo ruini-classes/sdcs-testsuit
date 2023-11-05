@@ -103,10 +103,24 @@ function test_delete() {
 		local key=$(get_key)
 		local exist=1
 		[[ " ${keys[@]} " =~ " ${key} " ]] && exist=0
+
 		! query_key $key $exist && return 1
+
+		if [[ $exist == 0 ]]; then
+			response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
+			result=$(echo "$response" | head -n 1)
+			status_code=$(echo "$response" | tail -n 1)
+			expect=0
+			if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
+				echo "Error: Invalid response"
+				echo "expect: $expect $status_code"
+				echo "got: $result $status_code"
+				return 1
+			fi
+		fi
+
 		((i++))
 	done
-
 }
 
 function run_test() {
