@@ -13,8 +13,6 @@ Simple test for SDCS
 ```
 
 ## Todo
-- [ ] More reasonable correctness tests (e.g., get those deleted keys explicitely.)
-- [x] Evaluate return value.
 - [ ] Real performance test (by jmeter?)
 - [ ] Better command line argument processing and help.
 
