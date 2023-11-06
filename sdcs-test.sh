@@ -29,6 +29,8 @@ cs_num=$1
 PORT_BASE=9526
 HOST_BASE=127.0.0.1
 MAX_ITER=500
+DELETED_KEYS=()
+_DELETED_KEYS_GENERATED=0
 
 PASS_PROMPT="\e[1;32mPASS\e[0m"
 FAIL_PROMPT="\e[1;31mFAIL\e[0m"
@@ -40,6 +42,21 @@ function get_cs() {
 
 function get_key() {
 	echo "key-$(shuf -i 1-$MAX_ITER -n 1)"
+}
+
+function gen_deleted_keys() {
+	[[ $_DELETED_KEYS_GENERATED == 1 ]] && return 0
+
+	local count=$((MAX_ITER / 10 * 3))
+
+	while [[ ${#DELETED_KEYS[@]} -lt $count ]]; do
+		local key="key-$(shuf -i 1-$MAX_ITER -n 1)"
+		if ! [[ " ${DELETED_KEYS[@]} " =~ " ${key} " ]]; then
+			DELETED_KEYS+=("$key")
+		fi
+	done
+
+	_DELETED_KEYS_GENERATED=1
 }
 
 function gen_data_with_idx() {
@@ -75,7 +92,6 @@ function query_key() {
 			return 1
 		fi
 	fi
-	return 0
 }
 
 function test_set() {
@@ -89,36 +105,22 @@ function test_set() {
 		fi
 		((i++))
 	done
-	return 0
 }
 
 function test_get() {
-	local count=$((MAX_ITER / 10))
+	local count=$((MAX_ITER / 10 * 3))
 	local i=0
+
 	while [[ $i -lt $count ]]; do
-		if ! query_key $(get_key) 1; then
-			return 1
-		fi
+		query_key $(get_key) 1 || return 1
 		((i++))
 	done
-	return 0
 }
 
 
-deleted_keys=
-
 function test_delete() {
-	local count=$((MAX_ITER / 10 * 9))
-	local keys=()
-	while [[ ${#keys[@]} -lt $count ]]; do
-		key="key-$(shuf -i 1-$MAX_ITER -n 1)"
-		if ! [[ " ${keys[@]} " =~ " ${key} " ]]; then
-			keys+=("$key")
-		fi
-	done
-	deleted_keys=(${keys[@]})
-
-	for key in "${keys[@]}"; do
+	gen_deleted_keys
+	for key in "${DELETED_KEYS[@]}"; do
 		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
 		local result=$(echo "$response" | head -n 1)
 		local status_code=$(echo "$response" | tail -n 1)
@@ -130,17 +132,23 @@ function test_delete() {
 			return 1
 		fi
 	done
-
 }
 
+# need to check all keys to guarantee only appointed keys are removed.
 function test_get_after_delete() {
-	for key in "${deleted_keys[@]}"; do
-		query_key $key 0 || return 1
+	local key
+	local exist
+	local i=1
+	while [[ $i -le $MAX_ITER ]]; do
+        key=$(get_key)
+        [[ " ${DELETED_KEYS[@]} " =~ " ${key} " ]] && exist=0 || exist=1
+
+        query_key $key $exist || return 1
 	done
 }
 
 function test_delete_after_delete() {
-	for key in "${deleted_keys[@]}"; do
+	for key in "${DELETED_KEYS[@]}"; do
 		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
 		local result=$(echo "$response" | head -n 1)
 		local status_code=$(echo "$response" | tail -n 1)
