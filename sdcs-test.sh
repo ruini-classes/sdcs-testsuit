@@ -117,7 +117,6 @@ function test_get() {
 	done
 }
 
-
 function test_delete() {
 	gen_deleted_keys
 	for key in "${DELETED_KEYS[@]}"; do
@@ -140,10 +139,10 @@ function test_get_after_delete() {
 	local exist
 	local i=1
 	while [[ $i -le $MAX_ITER ]]; do
-        key=$(get_key)
-        [[ " ${DELETED_KEYS[@]} " =~ " ${key} " ]] && exist=0 || exist=1
+		key=$(get_key)
+		[[ " ${DELETED_KEYS[@]} " =~ " ${key} " ]] && exist=0 || exist=1
 
-        query_key $key $exist || return 1
+		query_key $key $exist || return 1
 	done
 }
 
@@ -201,13 +200,13 @@ TIMEFORMAT="======================================
 Run ${#test_order[@]} tests in %R seconds."
 
 time {
-for testname in "${test_order[@]}"; do
-	if run_test "${test_func[$testname]}" "$testname"; then
-		((pass_count++))
-	else
-		((fail_count++))
-	fi
-done
+	for testname in "${test_order[@]}"; do
+		if run_test "${test_func[$testname]}" "$testname"; then
+			((pass_count++))
+		else
+			((fail_count++))
+		fi
+	done
 }
 
 echo -e "\e[1;32m$pass_count\e[0m passed, \e[1;31m$fail_count\e[0m failed."
