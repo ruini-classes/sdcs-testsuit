@@ -143,6 +143,8 @@ function test_get_after_delete() {
 		[[ " ${DELETED_KEYS[@]} " =~ " ${key} " ]] && exist=0 || exist=1
 
 		query_key $key $exist || return 1
+
+		((i++))
 	done
 }
 
