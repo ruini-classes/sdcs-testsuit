@@ -81,8 +81,8 @@ function compare_json_for_key() {
 	local result=$2
 	local expect=$3
 
-	local value1=$(echo "$result" | jq ".\"$key\"")
-	local value2=$(echo "$expect" | jq ".\"$key\"")
+	local value1=$(echo "$result" | jq -r ".\"$key\"" 2>/dev/null)
+	local value2=$(echo "$expect" | jq -r ".\"$key\"" 2>/dev/null)
 
 	[[ "$value1" = "$value2" ]]
 }
@@ -140,7 +140,7 @@ function test_delete() {
 		local result=$(echo "$response" | head -n 1)
 		local status_code=$(echo "$response" | tail -n 1)
 		local expect=1
-		if [[ $status_code -ne 200 ]] || ! compare_json_for_key "$key" "$result" "$expect"; then
+		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
 			echo -e "Error:\tInvalid response"
 			echo -e "\texpect: $status_code $expect"
 			echo -e "\tgot: $status_code $result"
