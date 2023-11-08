@@ -14,6 +14,11 @@ cs_num=$1
 	exit 2
 }
 
+which jq >/dev/null || {
+	echo "Error: please install jq first."
+	exit 3
+}
+
 ## for macos, the default head/tail break. With GNU head/tail, it is
 ## easy to capture multilines, for example, `head -n -1` for a big body.
 #if [[ $OSTYPE == 'darwin'* ]]; then
@@ -59,16 +64,27 @@ function gen_deleted_keys() {
 	_DELETED_KEYS_GENERATED=1
 }
 
-function gen_data_with_idx() {
+function gen_json_with_idx() {
 	local idx=$1
 
-	echo "{\"key-$idx\": \"value $idx\"}"
+	jq -n --arg key "key-$idx" --arg value "value $idx" '{$key: $value}'
 }
 
-function gen_data_with_key() {
-	local key=$1
+function gen_json_with_key() {
+	local idx=$(echo $key | cut -d- -f2)
 
-	echo "{\"$key\":\"value $(echo $key | sed 's/.*-//')\"}"
+	gen_json_with_idx $idx
+}
+
+function compare_json_for_key() {
+	local key=$1
+	local result=$2
+	local expect=$3
+
+	local value1=$(echo "$result" | jq -r ".\"$key\"" 2>/dev/null)
+	local value2=$(echo "$expect" | jq -r ".\"$key\"" 2>/dev/null)
+
+	[[ "$value1" = "$value2" ]]
 }
 
 function query_key() {
@@ -79,8 +95,8 @@ function query_key() {
 	local status_code=$(echo "$response" | tail -n 1)
 
 	if [[ $exist == 1 ]]; then
-		local expect=$(gen_data_with_key $key)
-		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
+		local expect=$(gen_json_with_key $key)
+		if [[ $status_code -ne 200 ]] || ! compare_json_for_key "$key" "$result" "$expect"; then
 			echo -e "Error:\tInvalid response"
 			echo -e "\texpect: 200 $expect"
 			echo -e "\tgot: $status_code $result"
@@ -98,7 +114,7 @@ function test_set() {
 	local i=1
 
 	while [[ $i -le $MAX_ITER ]]; do
-		status_code=$(curl -s -o /dev/null -w "%{http_code}" -XPOST -H "Content-type: application/json" -d "$(gen_data_with_idx $i)" $(get_cs))
+		status_code=$(curl -s -o /dev/null -w "%{http_code}" -XPOST -H "Content-type: application/json" -d "$(gen_json_with_idx $i)" $(get_cs))
 		if [[ $status_code -ne 200 ]]; then
 			echo "Error: expect status code 200 but got $status_code"
 			return 1
