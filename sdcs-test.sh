@@ -14,7 +14,7 @@ cs_num=$1
 	exit 2
 }
 
-which jq >/dev/null || {
+which jq >/dev/null 2>&1 || {
 	echo "Error: please install jq first."
 	exit 3
 }
@@ -67,7 +67,7 @@ function gen_deleted_keys() {
 function gen_json_with_idx() {
 	local idx=$1
 
-	jq -n --arg key "key-$idx" --arg value "value $idx" '{$key: $value}'
+	jq -n --arg key "key-$idx" --arg value "value $idx" '{($key): ($value)}'
 }
 
 function gen_json_with_key() {
