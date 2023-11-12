@@ -91,7 +91,7 @@ function query_key() {
 	local key=$1
 	local exist=$2
 	local response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
-	local result=$(echo "$response" | head -n 1)
+	local result=$(echo "$response" | head -n 3)
 	local status_code=$(echo "$response" | tail -n 1)
 
 	if [[ $exist == 1 ]]; then
