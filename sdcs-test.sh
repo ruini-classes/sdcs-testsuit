@@ -19,18 +19,6 @@ which jq >/dev/null 2>&1 || {
 	exit 3
 }
 
-## for macos, the default head/tail break. With GNU head/tail, it is
-## easy to capture multilines, for example, `head -n -1` for a big body.
-#if [[ $OSTYPE == 'darwin'* ]]; then
-#	if `which ghead > /dev/null 2>&1` ; then
-#		alias head=ghead
-#		alias tail=gtail
-#	else
-#		echo "please run 'brew install coreutils'."
-#		exit 1
-#	fi
-#fi
-
 PORT_BASE=9526
 HOST_BASE=127.0.0.1
 MAX_ITER=500
@@ -91,7 +79,8 @@ function query_key() {
 	local key=$1
 	local exist=$2
 	local response=$(curl -s -w "\n%{http_code}" $(get_cs)/$key)
-	local result=$(echo "$response" | head -n 1)
+	# everything but the last line. `head -n -1` breaks in macos, let's turn to sed trick.
+	local result=$(echo "$response" | sed '$d')
 	local status_code=$(echo "$response" | tail -n 1)
 
 	if [[ $exist == 1 ]]; then
@@ -137,7 +126,8 @@ function test_delete() {
 	gen_deleted_keys
 	for key in "${DELETED_KEYS[@]}"; do
 		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-		local result=$(echo "$response" | head -n 1)
+		# `head -n 1` works for delete actually. let's use sed for consistency.
+		local result=$(echo "$response" | sed '$d')
 		local status_code=$(echo "$response" | tail -n 1)
 		local expect=1
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "$expect" ]]; then
@@ -167,7 +157,7 @@ function test_get_after_delete() {
 function test_delete_after_delete() {
 	for key in "${DELETED_KEYS[@]}"; do
 		local response=$(curl -XDELETE -s -w "\n%{http_code}" $(get_cs)/$key)
-		local result=$(echo "$response" | head -n 1)
+		local result=$(echo "$response" | sed '$d')
 		local status_code=$(echo "$response" | tail -n 1)
 		if [[ $status_code -ne 200 ]] || [[ "$result" != "0" ]]; then
 			echo -e "Error:\tInvalid response"
